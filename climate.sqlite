@@ -1,0 +1,103 @@
+/* To practice what you’ve learned about window functions, you are going to use climate data from each state in the United States. A labeled map of the United States can be found here.
+
+These data will show the average annual temperature for each state – this is the average temperature of every day in all parts of the state for that year.*/
+
+/* see what the table contains */
+SELECT * 
+FROM state_climate
+Limit 5;
+/* Table has temperature data for every us state from 1895 to 2018 */
+
+
+/* Let’s start by looking at how the average temperature changes over time in each state.
+
+Write a query that returns the state, year, tempf or tempc, and running_avg_temp (in either Celsius or Fahrenheit) for each state.
+
+(The running_avg_temp should use a window function.)*/
+SELECT state, year, tempf, avg(tempf) over(
+  partition by state
+  order by year
+) 'running_avg_temp'
+From state_climate
+Limit 5;
+
+
+/* 
+Now let’s explore the lowest temperatures for each state.
+
+Write a query that returns state, year, tempf or tempc, and the lowest temperature (lowest_temp) for each state.
+
+Are the lowest recorded temps for each state more recent or more historic?*/
+
+SELECT state, year, tempf, FIRST_VALUE(tempf)
+OVER(
+  PARTITION BY state
+  ORDER BY tempf
+) lowest_temp
+FROM state_climate
+LIMIT 3;
+
+/*
+Like before, write a query that returns state, year, tempf or tempc, except now we will also return the highest temperature (highest_temp) for each state.
+
+Are the highest recorded temps for each state more recent or more historic? */
+SELECT state, year, tempf, LAST_VALUE(tempf)
+OVER(
+  Partition by state
+  order by tempf
+  RANGE BETWEEN UNBOUNDED PRECEDING AND 
+      UNBOUNDED FOLLOWING
+) highest_temp
+FROM state_climate
+LIMIT 3;
+
+/* 
+Let’s see how temperature has changed each year in each state.
+
+Write a query to select the same columns but now you should write a window function that returns the change_in_temp from the previous year (no null values should be returned).
+
+Which states and years saw the largest changes in temperature?
+Is there a particular part of the United States that saw the largest yearly changes in temperature?*/
+
+SELECT state, year, tempf, 
+tempf - LAG(tempf, 1, tempf)
+OVER (
+  PARTITION BY state
+  ORDER BY year
+) change_in_temp
+FROM state_climate
+Order by change_in_temp ASC
+LIMIT 5;
+
+/* Write a query to return a rank of the coldest temperatures on record (coldest_rank) along with year, state, and tempf or tempc. Are the coldest ranked years recent or historic? The coldest years should be from any state or year.*/
+SELECT RANK() OVER(
+  ORDER BY tempf
+) coldest_rank, year, state, tempf
+FROM state_climate
+LIMIT 5;
+
+/*
+Let’s now write a query that will return the average yearly temperatures in quartiles instead of in rankings for each state.
+
+Your query should return quartile, year, state and tempf or tempc. The top quartile should be the coldest years.
+
+Are the coldest years more recent or historic? */
+SELECT NTILE(4) OVER(
+  PARTITION BY state
+  ORDER BY tempf ASC
+) AS 'quartile', year, state, tempf
+FROM state_climate
+LIMIT 5;
+
+/* 
+Lastly, we will write a query that will return the average yearly temperatures in quintiles (5).
+
+Your query should return quintile, year, state and tempf or tempc. The top quintile should be the coldest years overall, not by state.
+
+What is different about the coldest quintile now?*/
+
+SELECT NTILE(5) OVER(
+  ORDER BY tempf ASC
+) AS 'quntile', year, state, tempf
+FROM state_climate
+LIMIT 5;
